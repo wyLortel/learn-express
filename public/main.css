@@ -15,3 +15,29 @@ body {
 .logo {
   font-weight: bold;
 }
+
+.grey-bg {
+  background-color: #eee;
+}
+
+.white-bg {
+  background-color: white;
+  margin: 20px;
+  border-radius: 5px;
+}
+
+.list-box {
+  padding: 30px;
+  border-bottom: 1px solid #eee;
+}
+
+.list-box h4 {
+  font-size: 16px;
+  margin: 5px;
+}
+
+.list-box p {
+  font-size: 12px;
+  margin: 5px;
+  color: gray;
+}
