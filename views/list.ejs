@@ -10,10 +10,15 @@
     <%- include('nav.ejs') %>
     <div class="white-bg">
         <% for (let i = 0; i < posts.length; i++){ %>
-          <div class="list-box">
-            <h4><%= posts[i].title %></h4>
-            <p><%= posts[i].content %></p>
-          </div>
+          <a href="/detail/<%= posts[i]._id %>">
+            <div class="list-box">
+              <div class="title-row">
+                <h4><%= posts[i].title %></h4>
+                <a href="/edit/<%= posts[i]._id %>" onclick="event.stopPropagation()">✏️</a>
+              </div>
+              <p><%= posts[i].content %></p>
+            </div>
+          </a>
         <% } %>
       </div>
 
