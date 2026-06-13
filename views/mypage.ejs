@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>마이페이지</title>
+    <link rel="stylesheet" href="/main.css" />
+  </head>
+  <body class="grey-bg">
+    <%- include('nav.ejs') %>
+    <div class="white-bg">
+      <h1><%= user.username %> 님의 마이페이지</h1>
+      <p>ID: <%= user.id %></p>
+    </div>
+  </body>
+</html>

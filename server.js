@@ -2,7 +2,31 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
+const bcrypt = require('bcrypt');
 const methodOverride = require('method-override');
+
+//passport라이브러리 셋팅
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+const MongoStore = require('connect-mongo').default;
+
+app.use(passport.initialize());
+app.use(
+  session({
+    secret: '암호화에 쓸 비번',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 60 * 60 * 1000 },
+    store: new MongoStore({
+      mongoUrl: process.env.MONGO_URL,
+      dbName: 'forum',
+    }),
+  }),
+);
+
+app.use(passport.session());
 
 //퍼블릭 가져다가 쓰는거
 app.use(express.static(__dirname + '/public'));
@@ -151,4 +175,114 @@ app.put('/edit/:id', async (요청, 응답) => {
       message: '서버 오류로 글 수정에 실패했습니다.',
     });
   }
+});
+
+app.post('/abc/:id', async (요청, 응답) => {
+  try {
+    const { id } = 요청.params;
+    console.log('받은 id:', id, '타입:', typeof id);
+    await db.collection('post').deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    응답.json({ success: true, message: '삭제 완료' });
+  } catch (error) {
+    console.error(error);
+    응답.status(500).json({
+      success: false,
+      message: '삭제 실패',
+    });
+  }
+});
+
+app.get('/list/:id', async (요청, 응답) => {
+  let result = await db
+    .collection('post')
+    .find()
+    .skip((요청.params.id - 1) * 5)
+    .limit(5)
+    .toArray();
+  console.log(result[0].title);
+  응답.render('list.ejs', { posts: result });
+});
+
+app.get('/login', async (요청, 응답) => {
+  console.log(요청.user);
+  응답.render('login.ejs');
+});
+
+passport.use(
+  new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
+    let result = await db
+      .collection('user')
+      .findOne({ username: 입력한아이디 });
+    if (!result) {
+      return cb(null, false, { message: '아이디 DB에 없음' });
+    }
+
+    if (await bcrypt.compare(입력한비번, result.password)) {
+      return cb(null, result);
+    } else {
+      return cb(null, false, { message: '비번불일치' });
+    }
+  }),
+);
+
+passport.serializeUser((user, done) => {
+  process.nextTick(() => {
+    done(null, { id: user._id, username: user.username });
+  });
+});
+
+passport.deserializeUser(async (user, done) => {
+  let result = await db.collection('user').findOne({
+    _id: new ObjectId(user.id),
+  });
+  delete result.password;
+  process.nextTick(() => {
+    return done(null, user);
+  });
+});
+
+app.post('/login', (요청, 응답, next) => {
+  passport.authenticate('local', (error, user, info) => {
+    if (error) {
+      return 응답.status(500).json(error);
+    }
+    if (!user) {
+      return 응답.status(401).json(info.message);
+    }
+    요청.login(user, (err) => {
+      if (err) return next(err);
+      응답.redirect('/');
+    });
+  })(요청, 응답, next);
+});
+
+//로그인 확인 미들웨어
+const isLoggedIn = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+};
+
+app.get('/mypage', isLoggedIn, (req, res) => {
+  res.render('mypage.ejs', { user: req.user });
+});
+
+app.get('/register', (요청, 응답) => {
+  응답.render('register.ejs');
+});
+
+app.post('/register', async (요청, 응답) => {
+  let hash = await bcrypt.hash(요청.body.password, 10);
+  console.log(hash);
+
+  await db.collection('user').insertOne({
+    username: 요청.body.username,
+    password: hash,
+  });
+  응답.redirect('/');
 });

@@ -15,6 +15,7 @@
               <div class="title-row">
                 <h4><%= posts[i].title %></h4>
                 <a href="/edit/<%= posts[i]._id %>" onclick="event.stopPropagation()">✏️</a>
+                <button class="delete" data-id="<%= posts[i]._id %>">🗑️</button>
               </div>
               <p><%= posts[i].content %></p>
             </div>
@@ -23,5 +24,20 @@
       </div>
 
     </div>
+
+    <script>
+       document.querySelectorAll('.delete').forEach(function(btn) {
+    btn.addEventListener('click', function(event){
+      event.stopPropagation();
+      const postId = this.dataset.id;
+      fetch('/abc/' + postId, {
+        method: 'POST',
+        headers: { 'content-Type': 'application/json' }
+      }).then(() => {
+        location.reload();
+      })
+    })
+  })
+    </script>
   </body>
 </html>
