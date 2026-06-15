@@ -39,17 +39,48 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 //서버 띄우는 코드  listen(8080, 이건 포트 번호
-app.listen(8080, () => {
-  console.log('http://localhost:8080에서 서버 실행중');
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`http://localhost:${PORT}에서 서버 실행중`);
 });
 
-//메인 페이지 가면 반갑다 반환
-app.get('/', (요청, 응답) => {
-  응답.sendFile(__dirname + '/index.html');
-});
+function checkLogin(요청, 응답, next) {
+  if (!요청.user) {
+    return 응답.send('로그인하세요');
+  }
+  next();
+}
 
+function formatTime(date) {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? '오후' : '오전';
+  const displayHours = hours % 12 || 12;
+  return `${period} ${displayHours}시 ${minutes}분`;
+}
+
+//공개 라우트 (로그인 필요 없음)
 app.get('/about', (요청, 응답) => {
   응답.sendFile(__dirname + '/about.html');
+});
+
+app.get('/time', (요청, 응답) => {
+  const formattedTime = formatTime(new Date());
+  응답.render('time.ejs', { time: formattedTime });
+});
+
+app.get('/login', async (요청, 응답) => {
+  console.log(요청.user);
+  응답.render('login.ejs');
+});
+
+app.get('/register', (요청, 응답) => {
+  응답.render('register.ejs');
+});
+
+//로그인 필요한 라우트
+app.get('/', (요청, 응답) => {
+  응답.sendFile(__dirname + '/index.html');
 });
 
 app.get('/write', (요청, 응답) => {
@@ -64,11 +95,10 @@ app.get('/shop', (요청, 응답) => {
   응답.send('쇼핑 페이지임');
 });
 
-app.get('/time', (요청, 응답) => {
-  응답.render('time.ejs', { time: new Date() });
-});
-
 app.get('/list', async (요청, 응답) => {
+  if (!db) {
+    return 응답.send('DB 연결 실패. 잠시 후 다시 시도해주세요.');
+  }
   let result = await db.collection('post').find().toArray();
   console.log(result[0].title);
   응답.render('list.ejs', { posts: result });
@@ -116,7 +146,7 @@ new MongoClient(url)
     db = client.db('forum');
   })
   .catch((error) => {
-    console.log(error);
+    console.log('DB 연결 실패:', error.message);
   });
 
 app.get('/detail/:id', async (요청, 응답) => {
